@@ -1,0 +1,104 @@
+# MCP YAML Filesystem Configuration
+#
+# This file should be copied to: ~/.config/mcp-yamlfilesystem/config
+# Or for Docker: config/config (mounted into container)
+#
+# SECURITY: This file must have mode 600 (chmod 600 this_file)
+#
+# Configuration file format:
+# - Lines starting with # are comments
+# - Format: KEY=value (same key names as environment variables)
+# - Whitespace around = is trimmed
+# - Blank lines are ignored
+#
+# All keys below are REQUIRED. Environment variables override these values.
+
+# ============================================================================
+# OPERATION MODE
+# ============================================================================
+#
+# Choose ONE mode: local or SMB. For local mode, set MCP_FILESYSTEM_LOCAL_PATH.
+# For SMB mode, set all three SMB_PATH/USER/PASSWORD keys.
+
+# Root path to directory containing YAML files (local mode)
+# Must exist and be a directory. Git version control recommended.
+# Leave empty if using SMB mode.
+MCP_FILESYSTEM_LOCAL_PATH=
+
+# ============================================================================
+# ALLOWED FILE EXTENSIONS
+# ============================================================================
+
+# Comma-separated list of allowed file extensions
+ALLOWED_EXTENSIONS=.yaml,.yml
+
+# ============================================================================
+# DEBUG LOGGING
+# ============================================================================
+
+# Enable debug logging (true/false/1/0/yes/no)
+DEBUG=false
+
+# Log file path. Empty = logs to stderr only. Supports ~ expansion.
+LOG_FILE=
+
+# ============================================================================
+# HTTP TRANSPORT
+# ============================================================================
+#
+# By default, the server uses stdio transport. Enable HTTP for network access.
+
+# Enable HTTP streaming transport (true/false)
+MCP_HTTP_ENABLED=false
+
+# Host address to bind to (use 0.0.0.0 for all interfaces)
+MCP_HTTP_HOST=127.0.0.1
+
+# Port to bind to
+MCP_HTTP_PORT=8000
+
+# Endpoint path for MCP HTTP transport
+MCP_HTTP_PATH=/mcp
+
+# ============================================================================
+# GOOGLE OAUTH AUTHENTICATION (HTTP mode only)
+# ============================================================================
+#
+# OAuth is enabled by default when HTTP mode is active.
+# Requires a Google Cloud project with OAuth 2.0 credentials.
+
+# Enable/disable OAuth for HTTP mode (true/false)
+MCP_OAUTH_ENABLED=true
+
+# Google OAuth Client ID (from Google Cloud Console)
+MCP_OAUTH_CLIENT_ID=
+
+# Google OAuth Client Secret (prefer environment variable for security)
+MCP_OAUTH_CLIENT_SECRET=
+
+# Public base URL for OAuth callbacks
+MCP_OAUTH_BASE_URL=
+
+# Email allowlist (comma-separated). Empty = all authenticated users allowed.
+MCP_OAUTH_ALLOWED_EMAILS=
+
+# ============================================================================
+# SMB CONFIGURATION (for direct SMB share access)
+# ============================================================================
+#
+# To use SMB mode, set all three required keys (PATH, USER, PASSWORD).
+# Leave all empty if using local mode.
+
+# SMB path: //server/share or //server/share/subdirectory
+MCP_FILESYSTEM_SMB_PATH=
+
+# SMB username
+MCP_FILESYSTEM_SMB_USER=
+
+# SMB password (prefer environment variable for security)
+MCP_FILESYSTEM_SMB_PASSWORD=
+
+# Directories to skip during recursive file listing (comma-separated).
+# Recommended for Home Assistant:
+#   deps,.storage,tts,backups,__pycache__,.git,node_modules
+MCP_FILESYSTEM_SMB_IGNORE_DIRS=

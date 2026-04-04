@@ -1,0 +1,247 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Create virtual environment
+      run: python -m venv .venv
+
+    - name: Install dependencies
+      run: |
+        .venv/bin/pip install --upgrade pip
+        .venv/bin/pip install -e ".[dev]"
+
+    - name: Run unit tests
+      run: |
+        .venv/bin/pytest tests/ \
+          -v \
+          --cov=src/mcp_yamlfilesystem \
+          --cov-report=xml \
+          --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: matrix.python-version == '3.13'
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        cache: 'pip'
+
+    - name: Create virtual environment
+      run: python -m venv .venv
+
+    - name: Install dependencies
+      run: |
+        .venv/bin/pip install --upgrade pip
+        .venv/bin/pip install -e ".[dev]"
+        .venv/bin/pip install black flake8 bandit mypy
+
+    - name: Check formatting with black
+      run: .venv/bin/black --check src/ tests/
+
+    - name: Lint with flake8
+      run: |
+        .venv/bin/flake8 src/ tests/ \
+          --count \
+          --select=E9,F63,F7,F82 \
+          --show-source \
+          --statistics
+        .venv/bin/flake8 src/ tests/ \
+          --count \
+          --exit-zero \
+          --max-complexity=10 \
+          --max-line-length=88 \
+          --statistics
+
+    - name: Security scan with bandit
+      run: .venv/bin/bandit -r src/ -ll
+
+    - name: Type check with mypy
+      run: .venv/bin/mypy src/ --ignore-missing-imports
+      continue-on-error: true
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        cache: 'pip'
+
+    - name: Create virtual environment
+      run: python -m venv .venv
+
+    - name: Install dependencies
+      run: |
+        .venv/bin/pip install --upgrade pip
+        .venv/bin/pip install -e ".[dev]"
+
+    - name: Run MCP protocol integration tests
+      run: |
+        .venv/bin/pytest tests/test_mcp_integration.py -v
+
+    - name: Run stdio transport tests
+      run: |
+        .venv/bin/pytest tests/test_stdio_transport.py -v
+
+  docker-smoke-test:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Create seed data
+      run: |
+        mkdir -p test-data
+        echo "greeting: hello world" > test-data/test.yaml
+
+    - name: Build and start container
+      run: |
+        docker compose build
+        docker run -d \
+          --name mcp-smoke-test \
+          -p 127.0.0.1:8000:8000 \
+          -v ${{ github.workspace }}/test-data:/data:rw \
+          -e MCP_FILESYSTEM_LOCAL_PATH=/data \
+          -e ALLOWED_EXTENSIONS=.yaml,.yml \
+          -e DEBUG=false \
+          -e LOG_FILE= \
+          -e MCP_HTTP_ENABLED=true \
+          -e MCP_HTTP_HOST=0.0.0.0 \
+          -e MCP_HTTP_PORT=8000 \
+          -e MCP_HTTP_PATH=/mcp \
+          -e MCP_OAUTH_ENABLED=false \
+          -e MCP_OAUTH_CLIENT_ID= \
+          -e MCP_OAUTH_CLIENT_SECRET= \
+          -e MCP_OAUTH_BASE_URL= \
+          -e MCP_OAUTH_ALLOWED_EMAILS= \
+          mcp-yamlfilesystem:latest
+
+    - name: Wait for server to be ready
+      run: |
+        for i in $(seq 1 30); do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/mcp 2>/dev/null || echo "000")
+          if [ "$STATUS" = "406" ] || [ "$STATUS" = "405" ] || [ "$STATUS" = "200" ]; then
+            echo "Server is ready (HTTP $STATUS)"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "Server failed to start"
+        docker logs mcp-smoke-test
+        exit 1
+
+    - name: Verify tools are registered
+      run: |
+        RESULT=$(npx @modelcontextprotocol/inspector --cli http://localhost:8000/mcp --method tools/list --transport http)
+        TOOL_COUNT=$(echo "$RESULT" | jq '.tools | length')
+        echo "Found $TOOL_COUNT tools"
+        if [ "$TOOL_COUNT" -ne 5 ]; then
+          echo "Expected 5 tools, got $TOOL_COUNT"
+          echo "$RESULT" | jq .
+          exit 1
+        fi
+
+    - name: Verify list_directory_structure works
+      run: |
+        RESULT=$(npx @modelcontextprotocol/inspector --cli http://localhost:8000/mcp --method tools/call --tool-name list_directory_structure --transport http)
+        IS_ERROR=$(echo "$RESULT" | jq '.isError')
+        if [ "$IS_ERROR" = "true" ]; then
+          echo "list_directory_structure returned an error"
+          echo "$RESULT" | jq .
+          exit 1
+        fi
+        echo "list_directory_structure succeeded"
+        echo "$RESULT" | jq -r '.content[0].text'
+
+    - name: Verify read_file works
+      run: |
+        RESULT=$(npx @modelcontextprotocol/inspector --cli http://localhost:8000/mcp --method tools/call --tool-name read_file --tool-arg file_path=test.yaml --transport http)
+        IS_ERROR=$(echo "$RESULT" | jq '.isError')
+        if [ "$IS_ERROR" = "true" ]; then
+          echo "read_file returned an error"
+          echo "$RESULT" | jq .
+          exit 1
+        fi
+        CONTENT=$(echo "$RESULT" | jq -r '.content[0].text')
+        if echo "$CONTENT" | grep -q "greeting: hello world"; then
+          echo "read_file returned expected content"
+        else
+          echo "Unexpected content: $CONTENT"
+          exit 1
+        fi
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker stop mcp-smoke-test || true
+        docker rm mcp-smoke-test || true
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test, lint, integration-test, docker-smoke-test]
+    if: always()
+
+    steps:
+    - name: Check test results
+      run: |
+        if [ "${{ needs.test.result }}" != "success" ] || \
+           [ "${{ needs.lint.result }}" != "success" ] || \
+           [ "${{ needs.integration-test.result }}" != "success" ] || \
+           [ "${{ needs.docker-smoke-test.result }}" != "success" ]; then
+          echo "❌ Some tests failed"
+          exit 1
+        else
+          echo "✅ All tests passed"
+        fi

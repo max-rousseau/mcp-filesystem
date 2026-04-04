@@ -1,0 +1,51 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scripts (local development utilities)
+scripts/
+
+# Temporary files
+tmp/
+
+# Environment
+.env
+
+# AI
+.claude
+.aider*
+
+# Docker runtime directories
+config/config
+data/

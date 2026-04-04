@@ -1,0 +1,106 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-yamlfilesystem"
+version = "1.0.0"
+description = "Secure MCP tool for managing YAML configuration files"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    {name = "Maxime Rousseau"}
+]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "mcp~=1.25",
+    "pyyaml~=6.0",
+    "smbprotocol~=1.15",
+    "uvicorn~=0.34",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest~=8.3",
+    "pytest-asyncio~=0.24",
+    "pytest-cov~=6.0",
+    # Code quality
+    "black~=25.1",
+    "flake8~=7.1",
+    "flake8-pyproject~=1.2",
+    "bandit[toml]~=1.8",
+    "vulture~=2.14",
+]
+
+[project.scripts]
+mcp-yamlfilesystem = "mcp_yamlfilesystem.server:main"
+
+[project.urls]
+Homepage = "https://github.com/max-rousseau/mcp-yamlfilesystem"
+Repository = "https://github.com/max-rousseau/mcp-yamlfilesystem"
+Issues = "https://github.com/max-rousseau/mcp-yamlfilesystem/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_yamlfilesystem"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+exclude = '''
+/(
+    \.venv
+    | \.git
+    | __pycache__
+    | build
+    | dist
+)/
+'''
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [".venv", ".git", "__pycache__", "build", "dist"]
+per-file-ignores = [
+    "__init__.py:F401",
+]
+
+[tool.bandit]
+exclude_dirs = [".venv", "tests"]
+skips = ["B101"]
+
+[tool.vulture]
+min_confidence = 80
+exclude = [".venv/", "tests/"]
+
+[tool.coverage.run]
+source = ["src/mcp_yamlfilesystem"]
+branch = true
+omit = [
+    "src/mcp_yamlfilesystem/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+]

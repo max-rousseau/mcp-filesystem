@@ -1,0 +1,13 @@
+services:
+  mcp-yamlfilesystem:
+    container_name: mcp-yamlfilesystem
+    image: mcp-yamlfilesystem:latest
+    build: .
+    ports:
+      - "${MCP_HOST:-127.0.0.1}:${MCP_PORT:-8000}:8000"
+    volumes:
+      # Mount config file (copy config/config.example to config/config)
+      - ./config/config:/home/mcp/.config/mcp-yamlfilesystem/config:ro
+      # Mount data directory for YAML files (git recommended for change tracking)
+      # - ./data:/data:rw
+    restart: unless-stopped

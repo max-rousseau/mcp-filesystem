@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     # Testing
-    "pytest~=8.3",
+    "pytest~=9.0",
     "pytest-asyncio~=0.24",
     "pytest-cov~=6.0",
     # Code quality

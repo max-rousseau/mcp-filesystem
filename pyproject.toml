@@ -24,7 +24,7 @@ dependencies = [
     "mcp~=1.25",
     "pyyaml~=6.0",
     "smbprotocol~=1.15",
-    "uvicorn~=0.34",
+    "uvicorn~=0.44",
 ]
 
 [project.optional-dependencies]

@@ -37,7 +37,7 @@ dev = [
     "black~=26.3",
     "flake8~=7.1",
     "flake8-pyproject~=1.2",
-    "bandit[toml]~=1.8",
+    "bandit[toml]~=1.9",
     "vulture~=2.14",
 ]
 

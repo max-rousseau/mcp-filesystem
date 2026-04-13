@@ -35,7 +35,7 @@ dev = [
     "pytest-cov~=7.1",
     # Code quality
     "black~=26.3",
-    "flake8~=7.1",
+    "flake8~=7.3",
     "flake8-pyproject~=1.2",
     "bandit[toml]~=1.8",
     "vulture~=2.14",

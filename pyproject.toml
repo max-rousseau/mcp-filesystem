@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "mcp~=1.25",
     "pyyaml~=6.0",
-    "smbprotocol~=1.15",
+    "smbprotocol~=1.16",
     "uvicorn~=0.34",
 ]
 
